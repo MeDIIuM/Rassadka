@@ -2,3 +2,5 @@ node_modules/
 .next/
 .npm-cache/
 *.log
+.edge-*/
+*check*.png

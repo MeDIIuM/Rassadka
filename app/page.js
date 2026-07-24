@@ -35,16 +35,34 @@ const guests = guestGroups.flatMap((group) =>
   }))
 );
 
-const tables = Array.from({ length: 6 }, (_, index) => ({
-  id: `table-${index + 1}`,
-  number: index + 1,
-  seats: Array.from({ length: 8 }, (__, seatIndex) => `${index + 1}-${seatIndex + 1}`)
-}));
+const adminNames = new Set([
+  "андрей петров",
+  "юля коновальцева",
+  "полина организатор"
+]);
 
-const positions = [
-  [50, -6], [91, 14], [104, 50], [91, 86],
-  [50, 106], [9, 86], [-4, 50], [9, 14]
+const normalizeName = (value) =>
+  value.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+
+const cropPoint = ([x, y]) => [((x - 40) / 770) * 100, ((y - 50) / 900) * 100];
+const leftOuterRaw = [
+  [148, 276], [127, 323], [126, 383], [143, 430], [176, 476], [176, 520],
+  [148, 575], [128, 622], [127, 677], [145, 725], [174, 773], [180, 819]
 ];
+const leftInnerRaw = [
+  [264, 335], [278, 383], [290, 431], [301, 477], [302, 529], [287, 579],
+  [262, 624], [258, 675], [278, 723], [301, 767], [302, 817], [292, 868]
+];
+const mirrorRaw = (points) => points.map(([x, y]) => [850 - x, y]);
+const seatLayout = [
+  ...leftOuterRaw,
+  ...leftInnerRaw,
+  ...mirrorRaw(leftOuterRaw),
+  ...mirrorRaw(leftInnerRaw)
+].map((point, index) => {
+  const [x, y] = cropPoint(point);
+  return { id: `seat-${index + 1}`, number: index + 1, x, y, angle: 0 };
+});
 
 function BotanicalMark() {
   return (
@@ -63,11 +81,16 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState("");
+  const [session, setSession] = useState(null);
+  const [loginName, setLoginName] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("andrey-yulia-seating");
       if (saved) setAssignments(JSON.parse(saved));
+      const savedSession = localStorage.getItem("andrey-yulia-session");
+      if (savedSession) setSession(JSON.parse(savedSession));
     } catch {}
     setReady(true);
   }, []);
@@ -78,6 +101,19 @@ export default function Home() {
 
   const seatedIds = useMemo(() => new Set(Object.values(assignments)), [assignments]);
   const selected = guests.find((guest) => guest.id === selectedGuest);
+  const isAdmin = session?.role === "admin";
+  const viewerGuest = useMemo(() => {
+    if (!session || session.role !== "guest") return null;
+    const normalized = normalizeName(session.name);
+    const firstName = normalized.split(" ")[0];
+    return guests.find((guest) => {
+      const candidate = normalizeName(guest.name);
+      return candidate === normalized || candidate === firstName;
+    }) || null;
+  }, [session]);
+  const viewerSeatId = viewerGuest
+    ? Object.keys(assignments).find((seatId) => assignments[seatId] === viewerGuest.id)
+    : null;
 
   const filteredGroups = guestGroups.map((group) => ({
     ...group,
@@ -141,11 +177,69 @@ export default function Home() {
     }
   }
 
+  function logIn(event) {
+    event.preventDefault();
+    const normalized = normalizeName(loginName);
+    if (normalized.split(" ").length < 2) {
+      setLoginError("Введите имя и фамилию");
+      return;
+    }
+    const nextSession = {
+      name: loginName.trim().replace(/\s+/g, " "),
+      role: adminNames.has(normalized) ? "admin" : "guest"
+    };
+    localStorage.setItem("andrey-yulia-session", JSON.stringify(nextSession));
+    setSession(nextSession);
+    setLoginError("");
+  }
+
+  function logOut() {
+    localStorage.removeItem("andrey-yulia-session");
+    setSession(null);
+    setLoginName("");
+    setSelectedGuest(null);
+    setSidebarOpen(false);
+  }
+
   const seatedCount = seatedIds.size;
 
+  if (!ready) return <main className="auth-page" />;
+
+  if (!session) {
+    return (
+      <main className="auth-page">
+        <BotanicalMark />
+        <BotanicalMark />
+        <section className="auth-card">
+          <span className="auth-monogram">А <i>&amp;</i> Ю</span>
+          <span className="eyebrow">Свадебный ужин</span>
+          <h1>Добро пожаловать</h1>
+          <p>Введите имя и фамилию, чтобы увидеть своё место за столом.</p>
+          <form onSubmit={logIn}>
+            <label htmlFor="guest-login">Имя и фамилия</label>
+            <input
+              id="guest-login"
+              autoFocus
+              autoComplete="name"
+              value={loginName}
+              onChange={(event) => {
+                setLoginName(event.target.value);
+                setLoginError("");
+              }}
+              placeholder="Например, Андрей Петров"
+            />
+            {loginError && <span className="auth-error">{loginError}</span>}
+            <button type="submit">Найти моё место</button>
+          </form>
+          <small>Андрей &amp; Юля · с любовью к каждому гостю</small>
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className="app-shell">
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+    <main className={`app-shell ${isAdmin ? "admin-mode" : "guest-mode"}`}>
+      {isAdmin && <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-head">
           <button className="close-sidebar" onClick={() => setSidebarOpen(false)} aria-label="Закрыть">×</button>
           <span className="eyebrow">Андрей &amp; Юля</span>
@@ -197,26 +291,37 @@ export default function Home() {
           <div><strong>{seatedCount}</strong><span>из {guests.length} рассажено</span></div>
           <div className="progress"><i style={{ width: `${(seatedCount / guests.length) * 100}%` }} /></div>
         </div>
-      </aside>
+      </aside>}
 
-      {sidebarOpen && <button className="scrim" onClick={() => setSidebarOpen(false)} aria-label="Закрыть список" />}
+      {isAdmin && sidebarOpen && <button className="scrim" onClick={() => setSidebarOpen(false)} aria-label="Закрыть список" />}
 
       <section className="canvas">
         <BotanicalMark />
         <BotanicalMark />
         <header className="topbar">
-          <button className="mobile-guests" onClick={() => setSidebarOpen(true)}>
+          {isAdmin ? <button className="mobile-guests" onClick={() => setSidebarOpen(true)}>
             <span>☰</span> Гости
-          </button>
+          </button> : <span className="guest-greeting">Здравствуйте, {session.name.split(" ")[0]}</span>}
           <div className="title-block">
             <span className="eyebrow">План свадебного ужина</span>
             <h2>Наша рассадка</h2>
           </div>
-          <button className="reset-button" onClick={reset}>Очистить</button>
+          <div className="top-actions">
+            {isAdmin && <button className="reset-button" onClick={reset}>Очистить</button>}
+            <button className="logout-button" onClick={logOut}>Выйти</button>
+          </div>
         </header>
 
         <div className="instruction">
-          {selected ? (
+          {!isAdmin ? (
+            <>
+              <span className={`seat-icon ${viewerSeatId ? "found" : ""}`}>{viewerSeatId ? "✓" : "!"}</span>
+              <span>
+                <small>{viewerSeatId ? "Ваше место найдено" : "Место пока не назначено"}</small>
+                <strong>{viewerSeatId ? `Стул № ${seatLayout.find((seat) => seat.id === viewerSeatId)?.number}` : "Обратитесь к организатору"}</strong>
+              </span>
+            </>
+          ) : selected ? (
             <>
               <span className={`mini-avatar ${selected.group}`}>{selected.group === "andrey" ? "А" : "Ю"}</span>
               <span><small>Выбран гость</small><strong>{selected.name}</strong></span>
@@ -230,45 +335,39 @@ export default function Home() {
           )}
         </div>
 
-        <div className="tables-grid">
-          {tables.map((table) => {
-            const tableCount = table.seats.filter((seat) => assignments[seat]).length;
+        <div className="serpentine-plan">
+          <div className="reference-layer" aria-label="Схема столов по референсу">
+            <img src="/reference.jpg" alt="" />
+          </div>
+
+          {seatLayout.map((seat) => {
+            const guest = guests.find((item) => item.id === assignments[seat.id]);
             return (
-              <div className="table-zone" key={table.id}>
-                <div className="table">
-                  <div className="table-label">
-                    <span>Стол</span>
-                    <strong>{table.number}</strong>
-                    <small>{tableCount} / 8</small>
-                  </div>
-                  {table.seats.map((seatId, index) => {
-                    const guest = guests.find((item) => item.id === assignments[seatId]);
-                    return (
-                      <button
-                        key={seatId}
-                        className={`seat seat-${index} ${guest ? "occupied" : ""} ${selectedGuest ? "available" : ""}`}
-                        style={{ left: `${positions[index][0]}%`, top: `${positions[index][1]}%` }}
-                        onClick={() => placeGuest(seatId)}
-                        title={guest ? `${guest.name} — двойной клик, чтобы снять с места` : "Свободное место"}
-                        onDoubleClick={(event) => guest && unseat(seatId, event)}
-                      >
-                        <span className="chair" />
-                        {guest ? (
-                          <span className="seat-name">
-                            <i className={guest.group}>{guest.group === "andrey" ? "А" : "Ю"}</i>
-                            <b>{guest.name}</b>
-                            <em onClick={(event) => unseat(seatId, event)}>×</em>
-                          </span>
-                        ) : (
-                          <span className="seat-empty">+</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <button
+                key={seat.id}
+                className={`plan-seat ${guest ? "occupied" : ""} ${selectedGuest && isAdmin ? "available" : ""} ${viewerSeatId === seat.id ? "my-seat" : ""}`}
+                style={{ left: `${seat.x}%`, top: `${seat.y}%`, "--seat-angle": `${seat.angle}deg` }}
+                onClick={() => isAdmin && placeGuest(seat.id)}
+                title={guest ? `${guest.name} — двойной клик, чтобы снять с места` : `Место ${seat.number}`}
+                onDoubleClick={(event) => isAdmin && guest && unseat(seat.id, event)}
+              >
+                <span className="place-number">{seat.number}</span>
+                {isAdmin && guest && (
+                  <span className="plan-seat-name">
+                    <i className={guest.group}>{guest.group === "andrey" ? "А" : "Ю"}</i>
+                    <b>{guest.name}</b>
+                    <em onClick={(event) => unseat(seat.id, event)}>×</em>
+                  </span>
+                )}
+              </button>
             );
           })}
+
+          <div className="plan-caption">
+            <span>48 мест</span>
+            <i />
+            <span>{seatedCount} занято</span>
+          </div>
         </div>
 
         <footer className="canvas-footer">
