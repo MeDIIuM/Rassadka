@@ -4,3 +4,4 @@ node_modules/
 *.log
 .edge-*/
 *check*.png
+data/seating-state.json

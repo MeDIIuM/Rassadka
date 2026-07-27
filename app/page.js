@@ -1,39 +1,103 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const GUEST_DATA_VERSION = "filled-docx-44-v1";
 
 const guestGroups = [
   {
-    id: "andrey",
-    title: "Гости Андрея",
-    short: "А",
+    id: "guests",
+    title: "Гости",
+    short: "Г",
     guests: [
-      "Мама", "Папа", "Борис", "Маша", "Тая", "Шем", "Юля Шема", "Никита",
-      "Игорь", "Настя", "Бульбес", "Ангелина", "Даня", "Лера", "Серёжа",
-      "Лена", "Макс", "Аня", "Андрей", "Таня", "Коля", "Лена", "Таня",
-      "Слава", "Настя", "Петя", "Ольга", "Алексей", "Ирина", "Саша"
-    ]
-  },
-  {
-    id: "yulia",
-    title: "Гости Юли",
-    short: "Ю",
-    guests: [
-      "Мама", "Папа", "Бабушка Валя", "Бабушка Наташа", "Никита", "Тётя Оля",
-      "Дядя Миша", "Тётя Юля", "Юля", "Саша", "Ира", "Таня", "Андрей",
-      "Женя", "Марина"
+      { firstName: "Оксана", lastName: "Коновальцева", status: "Мама невесты", alcohol: "wine" },
+      { firstName: "Алексей", lastName: "Коновальцев", status: "Отец невесты" },
+      { firstName: "Александр", lastName: "Петров", status: "Отец жениха" },
+      { firstName: "Марина", lastName: "Гаврилова", status: "Мама жениха" },
+      { firstName: "Борис", lastName: "Петров", status: "Брат жениха" },
+      { firstName: "Мария", lastName: "Петрова", status: "Невестка (жена брата жениха)" },
+      { firstName: "Таисия", lastName: "Петрова", status: "Племянница" },
+      { firstName: "Ольга", lastName: "Семидотченко", status: "Тётя невесты" },
+      { firstName: "Никита", lastName: "Семидотченко", status: "Двоюродный брат невесты" },
+      { firstName: "Наталья", lastName: "Семидотченко", status: "Бабушка невесты" },
+      { firstName: "Никита", lastName: "Орехов", status: "Друг молодожёнов" },
+      { firstName: "Владислав", lastName: "Шеметов", status: "Друг молодожёнов" },
+      { firstName: "Игорь", lastName: "Бутков", status: "Друг молодожёнов" },
+      { firstName: "Даниил", lastName: "Попсуйко", status: "Друг молодожёнов" },
+      { firstName: "Максим", lastName: "Волосков", status: "Друг молодожёнов" },
+      { firstName: "Владислав", lastName: "Катаев", status: "Друг молодожёнов" },
+      { firstName: "Сергей", lastName: "Мякишев", status: "Друг молодожёнов" },
+      { firstName: "Никита", lastName: "Болбатун", status: "Друг молодожёнов" },
+      { firstName: "Андрей", lastName: "Зимин", status: "Друг молодожёнов" },
+      { firstName: "Евгений", lastName: "Азовцев", status: "Троюродный брат невесты" },
+      { firstName: "Марина", lastName: "Азовцева", status: "Жена троюродного брата невесты" },
+      { firstName: "Ольга", lastName: "Русакова", status: "Мама жены брата жениха" },
+      { firstName: "Алексей", lastName: "Русаков", status: "Папа жены брата жениха" },
+      { firstName: "Татьяна", lastName: "Зимина", status: "Подруга молодожёнов" },
+      { firstName: "Александр", lastName: "Гладков", status: "Друг молодожёнов" },
+      { firstName: "Юлия", lastName: "Гладкова", status: "Подруга молодожёнов" },
+      { firstName: "Ирина", lastName: "Щеглова", status: "Подруга молодожёнов" },
+      { firstName: "Ирина", lastName: "Яковлева", status: "Тётя жениха" },
+      { firstName: "Татьяна", lastName: "Букина", status: "Двоюродная тётя жениха" },
+      { firstName: "Вячеслав", lastName: "Букин", status: "Двоюродный дядя жениха" },
+      { firstName: "Николай", lastName: "Букин", status: "Троюродный брат жениха" },
+      { firstName: "Елена", lastName: "Букина", status: "Жена троюродного брата жениха" },
+      { firstName: "Анастасия", lastName: "Выходцева", status: "Троюродная сестра жениха" },
+      { firstName: "Пётр", lastName: "Выходцев", status: "Муж троюродной сестры жениха" },
+      { firstName: "Андрей", lastName: "Лямин", status: "Друг молодожёнов" },
+      { firstName: "Татьяна", lastName: "Лямина", status: "Подруга молодожёнов" },
+      { firstName: "Валерия", lastName: "Мясникова", status: "Подруга молодожёнов" },
+      { firstName: "Елена", lastName: "Мякишева", status: "Подруга молодожёнов" },
+      { firstName: "Анна", lastName: "Кондрашева", status: "Подруга молодожёнов" },
+      { firstName: "Анастасия", lastName: "Бердникова", status: "Подруга молодожёнов" },
+      { firstName: "Полина", lastName: "Белявская", status: "Подруга молодожёнов" },
+      { firstName: "Юлия", lastName: "Демина", status: "Подруга молодожёнов" }
     ]
   }
 ];
 
 const guests = guestGroups.flatMap((group) =>
-  group.guests.map((name, index) => ({
+  group.guests.map((person, index) => ({
     id: `${group.id}-${index + 1}`,
-    name,
+    name: [person.firstName, person.lastName].filter(Boolean).join(" "),
+    firstName: person.firstName,
+    lastName: person.lastName || "",
+    status: person.status || "",
+    alcohol: person.alcohol || "unknown",
+    information: person.information || "",
     group: group.id,
     number: index + 1
   }))
 );
+
+const coupleGuests = [
+  {
+    id: "couple-yulia",
+    name: "Юля Коновальцева",
+    firstName: "Юля",
+    lastName: "Коновальцева",
+    status: "Невеста",
+    group: "yulia",
+    number: 0,
+    isCouple: true
+  },
+  {
+    id: "couple-andrey",
+    name: "Андрей Петров",
+    firstName: "Андрей",
+    lastName: "Петров",
+    status: "Жених",
+    group: "andrey",
+    number: 0,
+    isCouple: true
+  }
+];
+const profilePeople = [...guests, ...coupleGuests];
+const groupShortById = {
+  ...Object.fromEntries(guestGroups.map((group) => [group.id, group.short])),
+  andrey: "А",
+  yulia: "Ю"
+};
 
 const adminNames = new Set([
   "андрей петров",
@@ -44,25 +108,127 @@ const adminNames = new Set([
 const normalizeName = (value) =>
   value.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
 
+const getPersonInitials = (guest, profile) => {
+  const firstName = (profile?.firstName || guest?.firstName || "").trim();
+  const lastName = (profile?.lastName || guest?.lastName || "").trim();
+  return `${Array.from(firstName)[0] || ""}${Array.from(lastName)[0] || ""}`.toUpperCase();
+};
+
+const createDefaultProfile = (guest) => ({
+  firstName: guest.firstName || guest.name,
+  lastName: guest.lastName || "",
+  status: guest.status || "",
+  alcohol: guest.alcohol || "unknown",
+  information: guest.information || ""
+});
+
+const defaultProfiles = Object.fromEntries(
+  profilePeople.map((guest) => [guest.id, createDefaultProfile(guest)])
+);
+
+const mergeStoredProfiles = (storedProfiles) =>
+  Object.fromEntries(
+    profilePeople.map((guest) => [
+      guest.id,
+      {
+        ...createDefaultProfile(guest),
+        ...(storedProfiles?.[guest.id] || {})
+      }
+    ])
+  );
+
+const serializeSharedState = (assignments, profiles) =>
+  JSON.stringify({ assignments, profiles });
+
+const alcoholLabels = {
+  unknown: "Не указано",
+  none: "Не пьёт",
+  wine: "Вино / шампанское",
+  strong: "Крепкий алкоголь",
+  all: "Всё"
+};
+
 const cropPoint = ([x, y]) => [((x - 40) / 770) * 100, ((y - 50) / 900) * 100];
 const leftOuterRaw = [
   [148, 276], [127, 323], [126, 383], [143, 430], [176, 476], [176, 520],
   [148, 575], [128, 622], [127, 677], [145, 725], [174, 773], [180, 819]
 ];
 const leftInnerRaw = [
-  [264, 335], [278, 383], [290, 431], [301, 477], [302, 529], [287, 579],
-  [262, 624], [258, 675], [278, 723], [301, 767], [302, 817], [292, 868]
+  [282, 430], [297, 480], [302, 530], [296, 580], [278, 630], [260, 680],
+  [260, 730], [279, 780], [300, 830], [302, 880], [292, 930]
 ];
 const mirrorRaw = (points) => points.map(([x, y]) => [850 - x, y]);
+const rightOuterRaw = mirrorRaw([
+  [148, 295], [127, 350], [126, 405], [143, 460], [176, 515], [176, 570],
+  [148, 625], [128, 680], [127, 735], [145, 790], [174, 845], [180, 900]
+]);
+const seatPointOverrides = {
+  "seat-24": [160, 865]
+};
 const seatLayout = [
-  ...leftOuterRaw,
-  ...leftInnerRaw,
-  ...mirrorRaw(leftOuterRaw),
-  ...mirrorRaw(leftInnerRaw)
-].map((point, index) => {
-  const [x, y] = cropPoint(point);
-  return { id: `seat-${index + 1}`, number: index + 1, x, y, angle: 0 };
+  ...leftOuterRaw.map((point, index) => ({
+    point,
+    id: `seat-${index + 1}`,
+    number: index + 3
+  })),
+  ...leftInnerRaw.map((point, index) => ({
+    point,
+    id: `seat-${index + 14}`,
+    number: 25 - index
+  })),
+  ...rightOuterRaw.map((point, index) => ({
+    point,
+    id: `seat-${index + 25}`,
+    number: index + 26
+  })),
+  ...mirrorRaw(leftInnerRaw).map((point, index) => ({
+    point,
+    id: `seat-${index + 38}`,
+    number: 48 - index
+  }))
+].map(({ point, id, number }) => {
+  const [x, y] = cropPoint(seatPointOverrides[id] || point);
+  return { id, number, x, y, angle: 0 };
 });
+
+function migrateHiddenAssignments(value) {
+  const next = { ...(value || {}) };
+  const visibleSeatIds = new Set(seatLayout.map((seat) => seat.id));
+  const occupiedVisibleSeats = new Set(
+    Object.keys(next).filter((seatId) => visibleSeatIds.has(seatId))
+  );
+  for (const hiddenSeatId of ["seat-13", "seat-37"]) {
+    const guestId = next[hiddenSeatId];
+    if (!guestId) continue;
+    delete next[hiddenSeatId];
+    const freeSeat = seatLayout.find((seat) => !occupiedVisibleSeats.has(seat.id));
+    if (freeSeat) {
+      next[freeSeat.id] = guestId;
+      occupiedVisibleSeats.add(freeSeat.id);
+    }
+  }
+  return next;
+}
+
+function normalizeAssignments(value) {
+  const migrated = migrateHiddenAssignments(value);
+  const validSeatIds = new Set(seatLayout.map((seat) => seat.id));
+  const validGuestIds = new Set(guests.map((guest) => guest.id));
+  const usedGuests = new Set();
+  return Object.fromEntries(
+    Object.entries(migrated).filter(([seatId, guestId]) => {
+      if (
+        !validSeatIds.has(seatId) ||
+        !validGuestIds.has(guestId) ||
+        usedGuests.has(guestId)
+      ) {
+        return false;
+      }
+      usedGuests.add(guestId);
+      return true;
+    })
+  );
+}
 
 function BotanicalMark() {
   return (
@@ -73,9 +239,112 @@ function BotanicalMark() {
   );
 }
 
+function GuestProfileCard({
+  guest,
+  draft,
+  setDraft,
+  isAdmin,
+  seatNumber,
+  seatLabel,
+  onClose,
+  onSave,
+  onMove,
+  onUnseat
+}) {
+  if (!guest || !draft) return null;
+  const update = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
+
+  return (
+    <div className="profile-card">
+      <div className="profile-card-head">
+        <button className="profile-back" onClick={onClose} aria-label="Вернуться к списку">←</button>
+        <span className="eyebrow">Карточка гостя</span>
+        <div className={`profile-avatar ${guest.group}`}>{groupShortById[guest.group] || "Г"}</div>
+        <h2>{[draft.lastName, draft.firstName].filter(Boolean).join(" ") || guest.name}</h2>
+        <p>{seatLabel || (seatNumber ? `Место № ${seatNumber}` : "Место пока не назначено")}</p>
+      </div>
+
+      <div className="profile-fields">
+        <div className="profile-name-row">
+          <label>
+            <span>Фамилия</span>
+            <input
+              value={draft.lastName}
+              onChange={(event) => update("lastName", event.target.value)}
+              placeholder="Не указана"
+              disabled={!isAdmin}
+            />
+          </label>
+          <label>
+            <span>Имя</span>
+            <input
+              value={draft.firstName}
+              onChange={(event) => update("firstName", event.target.value)}
+              placeholder="Имя"
+              disabled={!isAdmin}
+            />
+          </label>
+        </div>
+
+        <label>
+          <span>Статус</span>
+          <input
+            value={draft.status}
+            onChange={(event) => update("status", event.target.value)}
+            placeholder="Например, друг жениха"
+            disabled={!isAdmin}
+          />
+        </label>
+
+        <label>
+          <span>Алкоголь</span>
+          {isAdmin ? (
+            <select value={draft.alcohol} onChange={(event) => update("alcohol", event.target.value)}>
+              {Object.entries(alcoholLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="profile-readonly">{alcoholLabels[draft.alcohol] || alcoholLabels.none}</div>
+          )}
+        </label>
+
+        <label className="profile-information">
+          <span>Информация</span>
+          <textarea
+            value={draft.information}
+            onChange={(event) => update("information", event.target.value)}
+            placeholder={isAdmin ? "Предпочтения, важные детали, заметки…" : "Расскажите о важных пожеланиях или предпочтениях…"}
+            rows={6}
+            disabled={!isAdmin}
+          />
+          {!isAdmin && <small>Карточка доступна только для просмотра.</small>}
+        </label>
+      </div>
+
+      <div className="profile-actions">
+        {isAdmin
+          ? <button className="profile-save" onClick={onSave}>Сохранить</button>
+          : <button className="profile-close" onClick={onClose}>Закрыть</button>}
+        {isAdmin && seatNumber && (
+          <>
+            <button className="profile-move" onClick={onMove}>Пересадить гостя</button>
+            <button className="profile-unseat" onClick={onUnseat}>Освободить место</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [assignments, setAssignments] = useState({});
+  const [profiles, setProfiles] = useState(defaultProfiles);
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const [draggingGuestId, setDraggingGuestId] = useState(null);
+  const [dragOverSeatId, setDragOverSeatId] = useState(null);
+  const [activeProfileId, setActiveProfileId] = useState(null);
+  const [profileDraft, setProfileDraft] = useState(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -84,33 +353,273 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [loginName, setLoginName] = useState("");
   const [loginError, setLoginError] = useState("");
+  const sharedInitializedRef = useRef(false);
+  const sharedRevisionRef = useRef(null);
+  const sharedWritableRef = useRef(false);
+  const lastSyncedRef = useRef("");
+  const currentSharedStateRef = useRef({
+    assignments: {},
+    profiles: defaultProfiles
+  });
+  const syncQueueRef = useRef(Promise.resolve());
+
+  function applySharedState(sharedState) {
+    const nextAssignments = normalizeAssignments(sharedState.assignments || {});
+    const nextProfiles = mergeStoredProfiles(sharedState.profiles || {});
+    const nextSnapshot = serializeSharedState(nextAssignments, nextProfiles);
+
+    sharedInitializedRef.current = Boolean(sharedState.initialized);
+    sharedRevisionRef.current = sharedState.revision || null;
+    sharedWritableRef.current = true;
+    lastSyncedRef.current = nextSnapshot;
+    currentSharedStateRef.current = {
+      assignments: nextAssignments,
+      profiles: nextProfiles
+    };
+    setAssignments(nextAssignments);
+    setProfiles(nextProfiles);
+  }
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("andrey-yulia-seating");
-      if (saved) setAssignments(JSON.parse(saved));
-      const savedSession = localStorage.getItem("andrey-yulia-session");
-      if (savedSession) setSession(JSON.parse(savedSession));
-    } catch {}
-    setReady(true);
+    async function boot() {
+      let localAssignments = {};
+      let localProfiles = defaultProfiles;
+
+      try {
+        const savedSession = localStorage.getItem("andrey-yulia-session");
+        if (savedSession) setSession(JSON.parse(savedSession));
+
+        const savedVersion = localStorage.getItem("andrey-yulia-data-version");
+        const savedAssignments = localStorage.getItem("andrey-yulia-seating");
+        const savedProfiles = localStorage.getItem("andrey-yulia-profiles");
+
+        if (
+          (savedAssignments || savedProfiles) &&
+          !localStorage.getItem("andrey-yulia-legacy-backup-v1")
+        ) {
+          localStorage.setItem(
+            "andrey-yulia-legacy-backup-v1",
+            JSON.stringify({
+              savedAt: new Date().toISOString(),
+              dataVersion: savedVersion,
+              assignments: savedAssignments,
+              profiles: savedProfiles
+            })
+          );
+        }
+
+        if (savedVersion === GUEST_DATA_VERSION) {
+          if (savedAssignments) {
+            localAssignments = normalizeAssignments(JSON.parse(savedAssignments));
+          }
+          if (savedProfiles) {
+            localProfiles = mergeStoredProfiles(JSON.parse(savedProfiles));
+          }
+        }
+      } catch {}
+
+      const localSnapshot = serializeSharedState(localAssignments, localProfiles);
+      currentSharedStateRef.current = {
+        assignments: localAssignments,
+        profiles: localProfiles
+      };
+      lastSyncedRef.current = localSnapshot;
+
+      try {
+        const response = await fetch("/api/seating", { cache: "no-store" });
+        if (!response.ok) throw new Error("Shared seating is unavailable");
+        const sharedState = await response.json();
+        sharedWritableRef.current = true;
+
+        if (sharedState.initialized) {
+          applySharedState(sharedState);
+        } else if (Object.keys(localAssignments).length) {
+          const initializeResponse = await fetch("/api/seating", {
+            method: "POST",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mode: "initialize",
+              dataVersion: GUEST_DATA_VERSION,
+              assignments: localAssignments,
+              profiles: localProfiles
+            })
+          });
+          const initializedState = await initializeResponse.json();
+          if (!initializeResponse.ok && initializeResponse.status !== 409) {
+            throw new Error("Unable to initialize shared seating");
+          }
+          if (initializedState.initialized) applySharedState(initializedState);
+        } else {
+          sharedInitializedRef.current = false;
+          sharedRevisionRef.current = null;
+          setAssignments(localAssignments);
+          setProfiles(localProfiles);
+        }
+      } catch {
+        sharedWritableRef.current = false;
+        setAssignments(localAssignments);
+        setProfiles(localProfiles);
+      }
+
+      try {
+        localStorage.setItem("andrey-yulia-data-version", GUEST_DATA_VERSION);
+      } catch {}
+      setReady(true);
+    }
+
+    boot();
   }, []);
 
   useEffect(() => {
-    if (ready) localStorage.setItem("andrey-yulia-seating", JSON.stringify(assignments));
-  }, [assignments, ready]);
+    if (!ready) return;
+
+    currentSharedStateRef.current = { assignments, profiles };
+    const currentSnapshot = serializeSharedState(assignments, profiles);
+    try {
+      localStorage.setItem("andrey-yulia-seating", JSON.stringify(assignments));
+      localStorage.setItem("andrey-yulia-profiles", JSON.stringify(profiles));
+      localStorage.setItem("andrey-yulia-data-version", GUEST_DATA_VERSION);
+    } catch {}
+
+    if (
+      session?.role !== "admin" ||
+      !sharedWritableRef.current ||
+      currentSnapshot === lastSyncedRef.current ||
+      (!sharedInitializedRef.current && !Object.keys(assignments).length)
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      syncQueueRef.current = syncQueueRef.current
+        .then(async () => {
+          const latest = currentSharedStateRef.current;
+          const latestSnapshot = serializeSharedState(
+            latest.assignments,
+            latest.profiles
+          );
+          if (latestSnapshot === lastSyncedRef.current) return;
+
+          const mode = sharedInitializedRef.current ? "replace" : "initialize";
+          const response = await fetch("/api/seating", {
+            method: "POST",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mode,
+              expectedRevision: sharedRevisionRef.current,
+              dataVersion: GUEST_DATA_VERSION,
+              assignments: latest.assignments,
+              profiles: latest.profiles
+            })
+          });
+          const sharedState = await response.json();
+
+          if (response.ok) {
+            sharedInitializedRef.current = true;
+            sharedRevisionRef.current = sharedState.revision;
+            sharedWritableRef.current = true;
+            lastSyncedRef.current = latestSnapshot;
+            return;
+          }
+
+          if (response.status === 409 && sharedState.initialized) {
+            applySharedState(sharedState);
+            setNotice("Рассадка обновлена с другого устройства.");
+            return;
+          }
+          throw new Error("Unable to synchronize seating");
+        })
+        .catch(() => {
+          sharedWritableRef.current = false;
+          setNotice("Нет связи с общим хранилищем. Локальная копия сохранена.");
+        });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [assignments, profiles, ready, session?.role]);
+
+  useEffect(() => {
+    if (!ready) return;
+    let stopped = false;
+    let inFlight = false;
+
+    async function refreshSharedState() {
+      if (stopped || inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/seating", { cache: "no-store" });
+        if (!response.ok) throw new Error("Shared seating is unavailable");
+        const sharedState = await response.json();
+        sharedWritableRef.current = true;
+
+        if (!sharedState.initialized) {
+          sharedInitializedRef.current = false;
+          if (
+            session?.role === "admin" &&
+            Object.keys(currentSharedStateRef.current.assignments).length
+          ) {
+            lastSyncedRef.current = "";
+            setAssignments((current) => ({ ...current }));
+          }
+          return;
+        }
+
+        if (sharedState.revision === sharedRevisionRef.current) return;
+        const hasPendingAdminChanges =
+          session?.role === "admin" &&
+          serializeSharedState(
+            currentSharedStateRef.current.assignments,
+            currentSharedStateRef.current.profiles
+          ) !== lastSyncedRef.current;
+        if (!hasPendingAdminChanges) applySharedState(sharedState);
+      } catch {
+        sharedWritableRef.current = false;
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    const interval = window.setInterval(refreshSharedState, 2500);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshSharedState();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    refreshSharedState();
+
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [ready, session?.role]);
 
   const seatedIds = useMemo(() => new Set(Object.values(assignments)), [assignments]);
-  const selected = guests.find((guest) => guest.id === selectedGuest);
+  const activeProfileGuest = profilePeople.find((guest) => guest.id === activeProfileId);
   const isAdmin = session?.role === "admin";
   const viewerGuest = useMemo(() => {
     if (!session || session.role !== "guest") return null;
     const normalized = normalizeName(session.name);
     const firstName = normalized.split(" ")[0];
+    const exactProfileMatch = guests.find((guest) => {
+      const profile = profiles[guest.id] || createDefaultProfile(guest);
+      const profileName = normalizeName(profile.firstName);
+      const firstLast = normalizeName(`${profile.firstName} ${profile.lastName}`);
+      const lastFirst = normalizeName(`${profile.lastName} ${profile.firstName}`);
+      const sourceName = normalizeName(guest.name);
+      return (
+        profileName === normalized ||
+        sourceName === normalized ||
+        (profile.lastName && (firstLast === normalized || lastFirst === normalized))
+      );
+    });
+    if (exactProfileMatch) return exactProfileMatch;
     return guests.find((guest) => {
-      const candidate = normalizeName(guest.name);
-      return candidate === normalized || candidate === firstName;
+      const candidate = normalizeName(profiles[guest.id]?.firstName || guest.name);
+      return !candidate.includes(" ") && candidate === firstName;
     }) || null;
-  }, [session]);
+  }, [session, profiles]);
   const viewerSeatId = viewerGuest
     ? Object.keys(assignments).find((seatId) => assignments[seatId] === viewerGuest.id)
     : null;
@@ -119,7 +628,8 @@ export default function Home() {
     ...group,
     items: guests.filter((guest) => {
       const matchesGroup = guest.group === group.id;
-      const matchesQuery = guest.name.toLowerCase().includes(query.toLowerCase());
+      const profile = profiles[guest.id] || createDefaultProfile(guest);
+      const matchesQuery = `${profile.lastName} ${profile.firstName}`.toLowerCase().includes(query.toLowerCase());
       const matchesFilter =
         filter === "all" ||
         (filter === "free" && !seatedIds.has(guest.id)) ||
@@ -134,39 +644,84 @@ export default function Home() {
     setNotice("");
   }
 
+  function openProfile(id) {
+    const guest = profilePeople.find((item) => item.id === id);
+    if (!guest) return;
+    setActiveProfileId(id);
+    setProfileDraft({ ...(profiles[id] || createDefaultProfile(guest)) });
+    setSidebarOpen(true);
+    setNotice("");
+  }
+
+  function closeProfile() {
+    setActiveProfileId(null);
+    setProfileDraft(null);
+    if (!isAdmin) setSidebarOpen(false);
+  }
+
+  function saveProfile() {
+    if (!activeProfileId || !profileDraft) return;
+    setProfiles((current) => {
+      const previous = current[activeProfileId] || createDefaultProfile(activeProfileGuest);
+      return {
+        ...current,
+        [activeProfileId]: isAdmin
+          ? { ...previous, ...profileDraft }
+          : { ...previous, information: profileDraft.information }
+      };
+    });
+    setNotice("Карточка гостя сохранена");
+  }
+
+  function assignGuestToSeat(guestId, seatId) {
+    if (!guestId || !seatId) return;
+    setAssignments((current) => {
+      const next = { ...current };
+      const oldSeat = Object.keys(next).find((key) => next[key] === guestId);
+      const displaced = next[seatId];
+      if (oldSeat) delete next[oldSeat];
+      next[seatId] = guestId;
+      if (displaced && displaced !== guestId && oldSeat) next[oldSeat] = displaced;
+      return next;
+    });
+    const movedGuest = guests.find((guest) => guest.id === guestId);
+    setNotice(`${profiles[guestId]?.firstName || movedGuest?.name || "Гость"} — место назначено`);
+    setSelectedGuest(null);
+    setDraggingGuestId(null);
+    setDragOverSeatId(null);
+  }
+
   function placeGuest(seatId) {
     if (!selectedGuest) {
       const current = assignments[seatId];
-      if (current) {
-        setSelectedGuest(current);
-        setNotice("Гость выбран. Нажмите на другое место, чтобы пересадить.");
-      }
+      if (current) openProfile(current);
       return;
     }
-
-    setAssignments((current) => {
-      const next = { ...current };
-      const oldSeat = Object.keys(next).find((key) => next[key] === selectedGuest);
-      const displaced = next[seatId];
-      if (oldSeat) delete next[oldSeat];
-      next[seatId] = selectedGuest;
-      if (displaced && displaced !== selectedGuest && oldSeat) next[oldSeat] = displaced;
-      return next;
-    });
-    setNotice(`${selected?.name || "Гость"} — место назначено`);
-    setSelectedGuest(null);
+    assignGuestToSeat(selectedGuest, seatId);
   }
 
-  function unseat(seatId, event) {
-    event.stopPropagation();
-    const id = assignments[seatId];
+  function startGuestDrag(event, guestId) {
+    if (!isAdmin) return;
+    setDraggingGuestId(guestId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", guestId);
+  }
+
+  function dropGuestOnSeat(event, seatId) {
+    if (!isAdmin) return;
+    event.preventDefault();
+    const guestId = event.dataTransfer.getData("text/plain") || draggingGuestId;
+    assignGuestToSeat(guestId, seatId);
+  }
+
+  function unseat(seatId) {
     setAssignments((current) => {
       const next = { ...current };
       delete next[seatId];
       return next;
     });
-    setSelectedGuest(id);
-    setNotice("Гость снят с места и выбран для новой посадки.");
+    setSelectedGuest(null);
+    setNotice("Место освобождено.");
   }
 
   function reset() {
@@ -198,10 +753,24 @@ export default function Home() {
     setSession(null);
     setLoginName("");
     setSelectedGuest(null);
+    setActiveProfileId(null);
+    setProfileDraft(null);
     setSidebarOpen(false);
   }
 
   const seatedCount = seatedIds.size;
+  const activeProfileSeatId = activeProfileId
+    ? Object.keys(assignments).find((seatId) => assignments[seatId] === activeProfileId)
+    : null;
+  const activeProfileSeatNumber = activeProfileSeatId
+    ? seatLayout.find((seat) => seat.id === activeProfileSeatId)?.number
+    : null;
+  const activeProfileSeatLabel = activeProfileId === "couple-andrey"
+    ? "Место №1 · Стол молодожёнов"
+    : activeProfileId === "couple-yulia"
+      ? "Место №2 · Стол молодожёнов"
+      : null;
+  const showAvailableSeats = isAdmin && Boolean(selectedGuest || draggingGuestId);
 
   if (!ready) return <main className="auth-page" />;
 
@@ -239,7 +808,31 @@ export default function Home() {
 
   return (
     <main className={`app-shell ${isAdmin ? "admin-mode" : "guest-mode"}`}>
-      {isAdmin && <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      {isAdmin && <aside className={`sidebar ${activeProfileGuest ? "profile-sidebar" : ""} ${sidebarOpen ? "open" : ""}`}>
+        {activeProfileGuest ? (
+          <GuestProfileCard
+            guest={activeProfileGuest}
+            draft={profileDraft}
+            setDraft={setProfileDraft}
+            isAdmin
+            seatNumber={activeProfileSeatNumber}
+            seatLabel={activeProfileSeatLabel}
+            onClose={closeProfile}
+            onSave={saveProfile}
+            onMove={() => {
+              setSelectedGuest(activeProfileGuest.id);
+              closeProfile();
+              setNotice("Гость выбран. Нажмите на новое кресло.");
+              setSidebarOpen(false);
+            }}
+            onUnseat={() => {
+              if (activeProfileSeatId) unseat(activeProfileSeatId);
+              closeProfile();
+              setSidebarOpen(false);
+            }}
+          />
+        ) : (
+        <>
         <div className="sidebar-head">
           <button className="close-sidebar" onClick={() => setSidebarOpen(false)} aria-label="Закрыть">×</button>
           <span className="eyebrow">Андрей &amp; Юля</span>
@@ -270,12 +863,18 @@ export default function Home() {
                 return (
                   <button
                     key={guest.id}
-                    className={`guest-card ${selectedGuest === guest.id ? "selected" : ""} ${isSeated ? "seated" : ""}`}
+                    className={`guest-card ${selectedGuest === guest.id ? "selected" : ""} ${isSeated ? "seated" : ""} ${draggingGuestId === guest.id ? "dragging" : ""}`}
                     onClick={() => chooseGuest(guest.id)}
+                    draggable
+                    onDragStart={(event) => startGuestDrag(event, guest.id)}
+                    onDragEnd={() => {
+                      setDraggingGuestId(null);
+                      setDragOverSeatId(null);
+                    }}
                   >
                     <span className={`guest-avatar ${guest.group}`}>{group.short}</span>
                     <span className="guest-info">
-                      <strong>{guest.name}</strong>
+                      <strong>{[profiles[guest.id]?.lastName, profiles[guest.id]?.firstName || guest.name].filter(Boolean).join(" ")}</strong>
                       <small>{isSeated ? "Место назначено" : `${group.title} · ${guest.number}`}</small>
                     </span>
                     <span className="guest-status">{isSeated ? "✓" : "+"}</span>
@@ -291,9 +890,35 @@ export default function Home() {
           <div><strong>{seatedCount}</strong><span>из {guests.length} рассажено</span></div>
           <div className="progress"><i style={{ width: `${(seatedCount / guests.length) * 100}%` }} /></div>
         </div>
+        </>
+        )}
       </aside>}
 
-      {isAdmin && sidebarOpen && <button className="scrim" onClick={() => setSidebarOpen(false)} aria-label="Закрыть список" />}
+      {!isAdmin && activeProfileGuest && (
+        <aside className="sidebar profile-sidebar open">
+          <GuestProfileCard
+            guest={activeProfileGuest}
+            draft={profileDraft}
+            setDraft={setProfileDraft}
+            isAdmin={false}
+            seatNumber={activeProfileSeatNumber}
+            seatLabel={activeProfileSeatLabel}
+            onClose={closeProfile}
+            onSave={saveProfile}
+          />
+        </aside>
+      )}
+
+      {((isAdmin && sidebarOpen) || (!isAdmin && activeProfileGuest)) && (
+        <button
+          className="scrim"
+          onClick={() => {
+            if (activeProfileGuest) closeProfile();
+            else setSidebarOpen(false);
+          }}
+          aria-label="Закрыть панель"
+        />
+      )}
 
       <section className="canvas">
         <BotanicalMark />
@@ -301,7 +926,12 @@ export default function Home() {
         <header className="topbar">
           {isAdmin ? <button className="mobile-guests" onClick={() => setSidebarOpen(true)}>
             <span>☰</span> Гости
-          </button> : <span className="guest-greeting">Здравствуйте, {session.name.split(" ")[0]}</span>}
+          </button> : (
+            <div className="guest-user-actions">
+              <span className="guest-greeting">Здравствуйте, {session.name.split(" ")[0]}</span>
+              {viewerGuest && <button onClick={() => openProfile(viewerGuest.id)}>Моя карточка</button>}
+            </div>
+          )}
           <div className="title-block">
             <span className="eyebrow">План свадебного ужина</span>
             <h2>Наша рассадка</h2>
@@ -312,51 +942,76 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="instruction">
-          {!isAdmin ? (
-            <>
-              <span className={`seat-icon ${viewerSeatId ? "found" : ""}`}>{viewerSeatId ? "✓" : "!"}</span>
-              <span>
-                <small>{viewerSeatId ? "Ваше место найдено" : "Место пока не назначено"}</small>
-                <strong>{viewerSeatId ? `Стул № ${seatLayout.find((seat) => seat.id === viewerSeatId)?.number}` : "Обратитесь к организатору"}</strong>
-              </span>
-            </>
-          ) : selected ? (
-            <>
-              <span className={`mini-avatar ${selected.group}`}>{selected.group === "andrey" ? "А" : "Ю"}</span>
-              <span><small>Выбран гость</small><strong>{selected.name}</strong></span>
-              <button onClick={() => setSelectedGuest(null)}>Отмена</button>
-            </>
-          ) : (
-            <>
-              <span className="seat-icon">⌄</span>
-              <span><small>Как рассаживать</small><strong>Выберите гостя слева и нажмите на стул</strong></span>
-            </>
-          )}
-        </div>
-
         <div className="serpentine-plan">
           <div className="reference-layer" aria-label="Схема столов по референсу">
-            <img src="/reference.jpg" alt="" />
+            <img src="/reference-tables.png" alt="" />
           </div>
+
+          <div className="couple-seats" aria-label="Места молодожёнов">
+            <button
+              type="button"
+              className="couple-seat couple-seat-yulia"
+              title="Место №2 — Юля"
+              onClick={() => openProfile("couple-yulia")}
+            >
+              {getPersonInitials(coupleGuests[0], profiles["couple-yulia"])}
+            </button>
+            <button
+              type="button"
+              className="couple-seat couple-seat-andrey"
+              title="Место №1 — Андрей"
+              onClick={() => openProfile("couple-andrey")}
+            >
+              {getPersonInitials(coupleGuests[1], profiles["couple-andrey"])}
+            </button>
+          </div>
+          <span className="couple-table-label">Молодожёны</span>
 
           {seatLayout.map((seat) => {
             const guest = guests.find((item) => item.id === assignments[seat.id]);
+            const guestProfile = guest
+              ? profiles[guest.id] || createDefaultProfile(guest)
+              : null;
+            const guestName = guest
+              ? [guestProfile.lastName, guestProfile.firstName].filter(Boolean).join(" ")
+              : "";
             return (
               <button
                 key={seat.id}
-                className={`plan-seat ${guest ? "occupied" : ""} ${selectedGuest && isAdmin ? "available" : ""} ${viewerSeatId === seat.id ? "my-seat" : ""}`}
+                className={`plan-seat ${guest ? "occupied" : ""} ${showAvailableSeats && !guest ? "available" : ""} ${!guest && !showAvailableSeats ? "hidden-empty" : ""} ${viewerSeatId === seat.id ? "my-seat" : ""} ${dragOverSeatId === seat.id ? "drop-target" : ""} ${draggingGuestId === guest?.id ? "dragging" : ""}`}
                 style={{ left: `${seat.x}%`, top: `${seat.y}%`, "--seat-angle": `${seat.angle}deg` }}
-                onClick={() => isAdmin && placeGuest(seat.id)}
-                title={guest ? `${guest.name} — двойной клик, чтобы снять с места` : `Место ${seat.number}`}
-                onDoubleClick={(event) => isAdmin && guest && unseat(seat.id, event)}
+                aria-hidden={!guest && !showAvailableSeats}
+                tabIndex={!guest && !showAvailableSeats ? -1 : 0}
+                onClick={() => {
+                  if (isAdmin) placeGuest(seat.id);
+                  else if (guest) openProfile(guest.id);
+                }}
+                draggable={isAdmin && Boolean(guest)}
+                onDragStart={(event) => guest && startGuestDrag(event, guest.id)}
+                onDragEnd={() => {
+                  setDraggingGuestId(null);
+                  setDragOverSeatId(null);
+                }}
+                onDragOver={(event) => {
+                  if (!isAdmin) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setDragOverSeatId(seat.id);
+                }}
+                onDragLeave={() => {
+                  if (dragOverSeatId === seat.id) setDragOverSeatId(null);
+                }}
+                onDrop={(event) => dropGuestOnSeat(event, seat.id)}
+                aria-label={guest
+                  ? `Место №${seat.number}, ${guestName}`
+                  : `Свободное место №${seat.number}`}
+                title={guest
+                  ? `Место №${seat.number} — ${guestName}`
+                  : `Свободное место №${seat.number}`}
               >
-                <span className="place-number">{seat.number}</span>
-                {isAdmin && guest && (
-                  <span className="plan-seat-name">
-                    <i className={guest.group}>{guest.group === "andrey" ? "А" : "Ю"}</i>
-                    <b>{guest.name}</b>
-                    <em onClick={(event) => unseat(seat.id, event)}>×</em>
+                {guest && (
+                  <span className="seat-initials">
+                    {getPersonInitials(guest, guestProfile)}
                   </span>
                 )}
               </button>
@@ -364,9 +1019,7 @@ export default function Home() {
           })}
 
           <div className="plan-caption">
-            <span>48 мест</span>
-            <i />
-            <span>{seatedCount} занято</span>
+            <span>{seatedCount + 2} человек рассажено</span>
           </div>
         </div>
 
